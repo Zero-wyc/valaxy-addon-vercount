@@ -25,10 +25,33 @@ export function useAddonVercount() {
 
   const url = api === 'cn' ? cnUrl : api || defaultUrl
 
+  const generateBrowserToken = () => {
+    const screenInfo = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+    const languages = navigator.languages ? navigator.languages.join(',') : navigator.language || ''
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl')
+    const glInfo = gl ? gl.getParameter(gl.RENDERER) : ''
+    const components = [
+      screenInfo,
+      timeZone,
+      languages,
+      navigator.userAgent,
+      glInfo,
+      new Date().getTimezoneOffset()
+    ].join('|')
+    let hash = 0
+    for (let i = 0; i < components.length; i++) {
+      hash = ((hash << 5) - hash) + components.charCodeAt(i)
+      hash = hash & hash
+    }
+    return Math.abs(hash).toString(36)
+  }
+
   const fetchVisitorCount = (href: string) => {
     fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Browser-Token': generateBrowserToken() },
       body: JSON.stringify({ url: href }),
     })
       .then((response) => {
